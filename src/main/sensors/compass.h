@@ -82,3 +82,4 @@ bool compassIsCalibrationComplete(void);
 void compassBiasEstimatorInit(compassBiasEstimator_t *compassBiasEstimator, const float lambda_min, const float p0);
 void compassBiasEstimatorUpdate(compassBiasEstimator_t *compassBiasEstimator, const float lambda_min, const float p0);
 void compassBiasEstimatorApply(compassBiasEstimator_t *cBE, float *mag);
+float *getCompassMagADC(void);

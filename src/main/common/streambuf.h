@@ -36,6 +36,7 @@ void sbufWriteU16(sbuf_t *dst, uint16_t val);
 void sbufWriteU32(sbuf_t *dst, uint32_t val);
 void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val);
 void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val);
+void sbufWriteFloat(sbuf_t *dst, float val);
 void sbufFill(sbuf_t *dst, uint8_t data, int len);
 void sbufWriteData(sbuf_t *dst, const void *data, int len);
 void sbufWriteString(sbuf_t *dst, const char *string);

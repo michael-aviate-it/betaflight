@@ -648,4 +648,8 @@ void compassBiasEstimatorApply(compassBiasEstimator_t *cBE, float *mag)
     // update lambda
     cBE->lambda = cBE->lambda_min + (1.0f - cBE->lambda_min) * sq(zn);
 }
+
+float *getCompassMagADC(void) {
+    return mag.magADC;
+}
 #endif // USE_MAG

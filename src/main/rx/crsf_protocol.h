@@ -35,28 +35,38 @@ enum { CRSF_FRAME_SIZE_MAX = 64 }; // 62 bytes frame plus 2 bytes frame header(<
 enum { CRSF_PAYLOAD_SIZE_MAX = CRSF_FRAME_SIZE_MAX - 6 };
 
 typedef enum {
-    CRSF_FRAMETYPE_GPS = 0x02,
-    CRSF_FRAMETYPE_BATTERY_SENSOR = 0x08,
-    CRSF_FRAMETYPE_HEARTBEAT = 0x0B,
-    CRSF_FRAMETYPE_LINK_STATISTICS = 0x14,
-    CRSF_FRAMETYPE_RC_CHANNELS_PACKED = 0x16,
-    CRSF_FRAMETYPE_SUBSET_RC_CHANNELS_PACKED = 0x17,
-    CRSF_FRAMETYPE_LINK_STATISTICS_RX = 0x1C,
-    CRSF_FRAMETYPE_LINK_STATISTICS_TX = 0x1D,
-    CRSF_FRAMETYPE_ATTITUDE = 0x1E,
-    CRSF_FRAMETYPE_FLIGHT_MODE = 0x21,
+    CRSF_FRAMETYPE_GPS                          = 0x02,
+    CRSF_FRAMETYPE_BATTERY_SENSOR               = 0x08,
+    CRSF_FRAMETYPE_HEARTBEAT                    = 0x0B,
+    CRSF_FRAMETYPE_LINK_STATISTICS              = 0x14,
+    CRSF_FRAMETYPE_RC_CHANNELS_PACKED           = 0x16,
+    CRSF_FRAMETYPE_SUBSET_RC_CHANNELS_PACKED    = 0x17,
+    CRSF_FRAMETYPE_LINK_STATISTICS_RX           = 0x1C,
+    CRSF_FRAMETYPE_LINK_STATISTICS_TX           = 0x1D,
+    CRSF_FRAMETYPE_ATTITUDE                     = 0x1E,
+    CRSF_FRAMETYPE_FLIGHT_MODE                  = 0x21,
+
     // Extended Header Frames, range: 0x28 to 0x96
-    CRSF_FRAMETYPE_DEVICE_PING = 0x28,
-    CRSF_FRAMETYPE_DEVICE_INFO = 0x29,
-    CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY = 0x2B,
-    CRSF_FRAMETYPE_PARAMETER_READ = 0x2C,
-    CRSF_FRAMETYPE_PARAMETER_WRITE = 0x2D,
-    CRSF_FRAMETYPE_COMMAND = 0x32,
+    CRSF_FRAMETYPE_DEVICE_PING                  = 0x28,
+    CRSF_FRAMETYPE_DEVICE_INFO                  = 0x29,
+    CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY     = 0x2B,
+    CRSF_FRAMETYPE_PARAMETER_READ               = 0x2C,
+    CRSF_FRAMETYPE_PARAMETER_WRITE              = 0x2D,
+    CRSF_FRAMETYPE_COMMAND                      = 0x32,
+
     // MSP commands
-    CRSF_FRAMETYPE_MSP_REQ = 0x7A,   // response request using msp sequence as command
-    CRSF_FRAMETYPE_MSP_RESP = 0x7B,  // reply with 58 byte chunked binary
-    CRSF_FRAMETYPE_MSP_WRITE = 0x7C,  // write with 8 byte chunked binary (OpenTX outbound telemetry buffer limit)
-    CRSF_FRAMETYPE_DISPLAYPORT_CMD = 0x7D, // displayport control command
+    CRSF_FRAMETYPE_MSP_REQ                      = 0x7A,   // response request using msp sequence as command
+    CRSF_FRAMETYPE_MSP_RESP                     = 0x7B,  // reply with 58 byte chunked binary
+    CRSF_FRAMETYPE_MSP_WRITE                    = 0x7C,  // write with 8 byte chunked binary (OpenTX outbound telemetry buffer limit)
+    CRSF_FRAMETYPE_DISPLAYPORT_CMD              = 0x7D, // displayport control command
+
+	// Custom Frames
+	CRSF_FRAMETYPE_ACCELERATOR                  = 0xA0,
+	CRSF_FRAMETYPE_BARO                         = 0xA1,
+	CRSF_FRAMETYPE_GYRO                         = 0xA2,
+	CRSF_FRAMETYPE_MAGNET                       = 0xA3,
+	CRSF_FRAMETYPE_QUATERNION                   = 0xA4,
+	CRSF_FRAMETYPE_IMU                          = 0xA5,    
 } crsfFrameType_e;
 
 enum {
@@ -95,6 +105,9 @@ enum {
     CRSF_FRAME_RC_CHANNELS_PAYLOAD_SIZE = 22, // 11 bits per channel * 16 channels = 22 bytes.
     CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE = 6,
     CRSF_FRAME_DEVICE_PING_PAYLOAD_SIZE = 2,
+
+    CRSF_FRAME_BARO_SENSOR_PAYLOAD_SIZE = 12,
+    CRSF_FRAME_MAGNET_SENSOR_PAYLOAD_SIZE = 12,
 };
 
 enum {

@@ -516,6 +516,16 @@ float getBaroAltitude(void)
     return baro.altitude;
 }
 
+int32_t getBaroTemperature(void)
+{
+    return baro.temperature;
+}
+
+int32_t getBaroPressure(void)
+{
+    return baro.pressure / 100.0f;
+}
+
 static void performBaroCalibrationCycle(const float altitude)
 {
     baroGroundAltitude += altitude;

@@ -65,6 +65,21 @@ void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val)
     sbufWriteU8(dst, (uint8_t)val);
 }
 
+void sbufWriteFloat(sbuf_t *dst, float val)
+{
+    // not working due to strict-aliasing
+    // uint32_t uval = *(uint32_t*)&val;
+    union {
+        float f;
+        uint32_t u;
+    } uval;
+    uval.f = val;
+
+    sbufWriteU8(dst, uval.u >> 0);
+    sbufWriteU8(dst, uval.u >> 8);
+    sbufWriteU8(dst, uval.u >> 16);
+    sbufWriteU8(dst, uval.u >> 24);
+}
 
 void sbufFill(sbuf_t *dst, uint8_t data, int len)
 {
