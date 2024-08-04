@@ -61,9 +61,11 @@
 #include "rx/crsf.h"
 #include "rx/crsf_protocol.h"
 
-#include "sensors/battery.h"
+#include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/battery.h"
 #include "sensors/compass.h"
+#include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
 #include "telemetry/telemetry.h"
@@ -260,14 +262,14 @@ void crsfFrameGps(sbuf_t *dst)
 }
 
 /*
-0x08 Battery sensor
+0x08 Battery
 Payload:
 uint16_t    Voltage ( mV * 100 )
 uint16_t    Current ( mA * 100 )
 uint24_t    Fuel ( drawn mAh )
 uint8_t     Battery remaining ( percent )
 */
-void crsfFrameBatterySensor(sbuf_t *dst)
+void crsfFrameBattery(sbuf_t *dst)
 {
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
@@ -374,6 +376,129 @@ void crsfFrameFlightMode(sbuf_t *dst)
 }
 
 /*
+0xA0 Accelerator
+Payload:
+float x
+float y
+float z
+*/
+void crsfFrameAccelerator(sbuf_t *dst)
+{
+    sbufWriteU8(dst, CRSF_FRAME_ACCELERATOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_ACCELERATOR);
+    sbufWriteFloat(dst, acc.accADC[0]);
+    sbufWriteFloat(dst, acc.accADC[1]);
+    sbufWriteFloat(dst, acc.accADC[2]);
+}
+
+/*
+0xA1 Baro
+Payload:
+float altitude
+int32_t temperature
+int32_t pressure
+*/
+void crsfFrameBaro(sbuf_t *dst)
+{
+    const float baro_alt = getBaroAltitude();
+    const int32_t baro_pressure = getBaroPressure();
+    const int32_t baro_temperature = getBaroTemperature();
+
+    sbufWriteU8(dst, CRSF_FRAME_BARO_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_BARO);
+    sbufWriteFloat(dst, baro_alt);
+    sbufWriteU32(dst, baro_pressure);
+    sbufWriteU32(dst, baro_temperature);
+}
+
+/*
+0xA2 Gyro
+Payload:
+float x
+float y
+float z
+*/
+void crsfFrameGyro(sbuf_t *dst)
+{
+    sbufWriteU8(dst, CRSF_FRAME_GYRO_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_GYRO);
+    sbufWriteFloat(dst, gyro.gyroADC[0]);
+    sbufWriteFloat(dst, gyro.gyroADC[1]);
+    sbufWriteFloat(dst, gyro.gyroADC[2]);
+    sbufWriteFloat(dst, gyro.gyroADCf[0]);
+    sbufWriteFloat(dst, gyro.gyroADCf[1]);
+    sbufWriteFloat(dst, gyro.gyroADCf[2]);
+}
+
+/*
+0xA3 Magnet aka compass
+Payload:
+float   magADC[XYZ_AXIS_COUNT]
+*/
+void crsfFrameMagnet(sbuf_t *dst)
+{
+    const float *magADC = getCompassMagADC();
+
+    sbufWriteU8(dst, CRSF_FRAME_MAGNET_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_MAGNET);
+    for (uint8_t index = 0; index < XYZ_AXIS_COUNT; index++) {
+        sbufWriteFloat(dst, magADC[index]);
+    }
+}
+
+/*
+0xA4 Quaternion
+Payload:
+float w
+float x
+float y
+float z
+*/
+void crsfFrameQuaternion(sbuf_t *dst)
+{
+    quaternion __q;
+    getQuaternion(& __q);
+    sbufWriteU8(dst, CRSF_FRAME_QUATERNION_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_QUATERNION);
+    sbufWriteFloat(dst, (__q.w));
+    sbufWriteFloat(dst, (__q.x));
+    sbufWriteFloat(dst, (__q.y));
+    sbufWriteFloat(dst, (__q.z));
+}
+
+/*
+0xA5 IMU
+Payload:
+float w
+float x
+float y
+float z
+float x
+float y
+float z
+float x
+float y
+float z
+*/
+void crsfFrameIMU(sbuf_t *dst)
+{
+    quaternion __q;
+    getQuaternion(& __q);
+    sbufWriteU8(dst, CRSF_FRAME_IMU_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_IMU);
+    sbufWriteFloat(dst, (__q.w));
+    sbufWriteFloat(dst, (__q.x));
+    sbufWriteFloat(dst, (__q.y));
+    sbufWriteFloat(dst, (__q.z));
+    sbufWriteFloat(dst, gyro.gyroADCf[0]);
+    sbufWriteFloat(dst, gyro.gyroADCf[1]);
+    sbufWriteFloat(dst, gyro.gyroADCf[2]);
+    sbufWriteFloat(dst, acc.accADC[0]);
+    sbufWriteFloat(dst, acc.accADC[1]);
+    sbufWriteFloat(dst, acc.accADC[2]);
+}
+
+/*
 0x28 Ping
 Payload:
 int8_t    destination_add ( Destination Device address )
@@ -441,42 +566,6 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
     *lengthPtr = sbufPtr(dst) - lengthPtr;
 }
 
-/*
-0xA1 Baro sensor
-Payload:
-uint16_t    Voltage ( mV * 100 )
-uint16_t    Current ( mA * 100 )
-uint24_t    Fuel ( drawn mAh )
-uint8_t     Battery remaining ( percent )
-*/
-void crsfFrameBaroSensor(sbuf_t *dst)
-{
-    const float baro_alt = getBaroAltitude();
-    const int32_t baro_pressure = getBaroPressure();
-    const int32_t baro_temperature = getBaroTemperature();
-
-    sbufWriteU8(dst, CRSF_FRAME_BARO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    sbufWriteU8(dst, CRSF_FRAMETYPE_BARO);
-    sbufWriteFloat(dst, baro_alt);
-    sbufWriteU32(dst, baro_pressure);
-    sbufWriteU32(dst, baro_temperature);
-}
-
-/*
-0xA3 Magnet sensor aka compass
-Payload:
-float   magADC[XYZ_AXIS_COUNT]
-*/
-void crsfFrameMagnetSensor(sbuf_t *dst)
-{
-    const float *magADC = getCompassMagADC();
-
-    sbufWriteU8(dst, CRSF_FRAME_MAGNET_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    sbufWriteU8(dst, CRSF_FRAMETYPE_MAGNET);
-    for (uint8_t index = 0; index < XYZ_AXIS_COUNT; index++) {
-        sbufWriteFloat(dst, magADC[index]);
-    }
-}
 
 #if defined(USE_CRSF_V3)
 void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
@@ -661,7 +750,12 @@ typedef enum {
     CRSF_FRAME_HEARTBEAT_INDEX,
     CRSF_FRAME_ATTITUDE_INDEX,
     CRSF_FRAME_FLIGHT_MODE_INDEX,
-
+    CRSF_FRAME_ACCELERATOR_INDEX,
+    CRSF_FRAME_BARO_INDEX,
+    CRSF_FRAME_GYRO_INDEX,
+    CRSF_FRAME_MAGNET_INDEX,
+    CRSF_FRAME_QUATERNION_INDEX,
+    CRSF_FRAME_IMU_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -718,7 +812,7 @@ static void processCrsf(void)
 
     if (currentSchedule & BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX)) {
         crsfInitializeFrame(dst);
-        crsfFrameBatterySensor(dst);
+        crsfFrameBattery(dst);
         crsfFinalize(dst);
     }
 
@@ -739,6 +833,48 @@ static void processCrsf(void)
     if (currentSchedule & BIT(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameFlightMode(dst);
+        crsfFinalize(dst);
+    }
+
+#ifdef USE_ACC
+    if (currentSchedule & BIT(CRSF_FRAME_ACCELERATOR_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameAccelerator(dst);
+        crsfFinalize(dst);
+    }
+#endif
+
+#ifdef USE_BARO
+    if (currentSchedule & BIT(CRSF_FRAME_BARO_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameBaro(dst);
+        crsfFinalize(dst);
+    }
+#endif
+
+//    if (currentSchedule & BIT(CRSF_FRAME_GYRO_INDEX)) {
+//        crsfInitializeFrame(dst);
+//        crsfFrameGyro(dst);
+//        crsfFinalize(dst);
+//    }
+
+#ifdef USE_MAG            
+    if (currentSchedule & BIT(CRSF_FRAME_MAGNET_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameMagnet(dst);
+        crsfFinalize(dst);
+    }
+#endif
+
+    if (currentSchedule & BIT(CRSF_FRAME_QUATERNION_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameQuaternion(dst);
+        crsfFinalize(dst);
+    }
+
+    if (currentSchedule & BIT(CRSF_FRAME_IMU_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameIMU(dst);
         crsfFinalize(dst);
     }
 
@@ -798,7 +934,9 @@ void initCrsfTelemetry(void)
     }
 
     if (sensors(SENSOR_ACC) && telemetryIsSensorEnabled(SENSOR_PITCH | SENSOR_ROLL | SENSOR_HEADING)) {
+//        crsfSchedule[index++] = BIT(CRSF_FRAME_ACCELERATOR_INDEX);
         crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
+//        crsfSchedule[index++] = BIT(CRSF_FRAME_QUATERNION_INDEX);
     }
 
     if (telemetryIsSensorEnabled(SENSOR_MODE)) {
@@ -812,7 +950,21 @@ void initCrsfTelemetry(void)
     }
 #endif
 
-    crsfScheduleCount = (uint8_t)index;
+//#ifdef USE_ACC
+//    crsfSchedule[index++] = BIT(CRSF_FRAME_ACCELERATOR_INDEX);
+//#endif
+
+#ifdef USE_BARO
+    crsfSchedule[index++] = BIT(CRSF_FRAME_BARO_INDEX);
+#endif
+
+#ifdef USE_MAG            
+    crsfSchedule[index++] = BIT(CRSF_FRAME_MAGNET_INDEX);
+#endif
+
+crsfSchedule[index++] = BIT(CRSF_FRAME_IMU_INDEX);
+
+crsfScheduleCount = (uint8_t)index;
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
     crsfDisplayportRegister();
@@ -996,7 +1148,7 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
         crsfFrameAttitude(sbuf);
         break;
     case CRSF_FRAMETYPE_BATTERY_SENSOR:
-        crsfFrameBatterySensor(sbuf);
+        crsfFrameBattery(sbuf);
         break;
     case CRSF_FRAMETYPE_FLIGHT_MODE:
         crsfFrameFlightMode(sbuf);
