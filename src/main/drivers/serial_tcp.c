@@ -251,12 +251,16 @@ void tcpDataIn(tcpPort_t *instance, uint8_t* ch, int size)
 
     while (size--) {
 //        printf("%c", *ch);
-        s->port.rxBuffer[s->port.rxBufferHead] = *(ch++);
-        if (s->port.rxBufferHead + 1 >= s->port.rxBufferSize) {
-            s->port.rxBufferHead = 0;
+        if (s->port.rxCallback) {
+            s->port.rxCallback(*(ch++), s->port.rxCallbackData);
         } else {
-            s->port.rxBufferHead++;
-        }
+		s->port.rxBuffer[s->port.rxBufferHead] = *(ch++);
+		if (s->port.rxBufferHead + 1 >= s->port.rxBufferSize) {
+		    s->port.rxBufferHead = 0;
+		} else {
+		    s->port.rxBufferHead++;
+		}
+	}
     }
     pthread_mutex_unlock(&s->rxLock);
 //    printf("\n");
