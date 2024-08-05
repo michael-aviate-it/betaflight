@@ -801,80 +801,69 @@ static void processCrsf(void)
 
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
+    bool flag_frame_valid = false;
+    
+    crsfInitializeFrame(dst);
 
+    switch(currentSchedule) {
 #ifdef USE_GPS
-    if (currentSchedule & BIT(CRSF_FRAME_GPS_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameGps(dst);
-        crsfFinalize(dst);
-    }
+        case CRSF_FRAME_GPS_INDEX:
+            crsfFrameGps(dst);
+            flag_frame_valid = true;
+            break;
 #endif
-
-    if (currentSchedule & BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameBattery(dst);
-        crsfFinalize(dst);
-    }
-
+        case CRSF_FRAME_BATTERY_SENSOR_INDEX:
+            crsfFrameBattery(dst);
+            break;
 #if defined(USE_CRSF_V3)
-    if (currentSchedule & BIT(CRSF_FRAME_HEARTBEAT_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameHeartbeat(dst);
-        crsfFinalize(dst);
-    }
+        case CRSF_FRAME_HEARTBEAT_INDEX:
+            crsfFrameHeartbeat(dst);
+            flag_frame_valid = true;
+            break;
 #endif
-
-    if (currentSchedule & BIT(CRSF_FRAME_ATTITUDE_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameAttitude(dst);
-        crsfFinalize(dst);
-    }
-
-    if (currentSchedule & BIT(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameFlightMode(dst);
-        crsfFinalize(dst);
-    }
-
+        case CRSF_FRAME_ATTITUDE_INDEX:
+            crsfFrameAttitude(dst);
+            flag_frame_valid = true;
+            break;
+        case CRSF_FRAME_FLIGHT_MODE_INDEX:
+            crsfFrameFlightMode(dst);
+            flag_frame_valid = true;
+            break;
 #ifdef USE_ACC
-    if (currentSchedule & BIT(CRSF_FRAME_ACCELERATOR_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameAccelerator(dst);
-        crsfFinalize(dst);
-    }
+        case CRSF_FRAME_ACCELERATOR_INDEX:
+            crsfFrameAccelerator(dst);
+            flag_frame_valid = true;
+            break;
 #endif
-
 #ifdef USE_BARO
-    if (currentSchedule & BIT(CRSF_FRAME_BARO_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameBaro(dst);
-        crsfFinalize(dst);
-    }
+        case CRSF_FRAME_BARO_INDEX:
+            crsfFrameBaro(dst);
+            flag_frame_valid = true;
+            break;
 #endif
-
-//    if (currentSchedule & BIT(CRSF_FRAME_GYRO_INDEX)) {
-//        crsfInitializeFrame(dst);
-//        crsfFrameGyro(dst);
-//        crsfFinalize(dst);
-//    }
-
-#ifdef USE_MAG            
-    if (currentSchedule & BIT(CRSF_FRAME_MAGNET_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameMagnet(dst);
-        crsfFinalize(dst);
-    }
+        // case CRSF_FRAME_GYRO_INDEX:
+        //     crsfFrameGyro(dst);
+        //     flag_frame_valid = true;
+        //     break;
+#ifdef USE_MAG
+        case CRSF_FRAME_MAGNET_INDEX:
+            crsfFrameMagnet(dst);
+            flag_frame_valid = true;
+            break;
 #endif
+        case CRSF_FRAME_QUATERNION_INDEX:
+            crsfFrameQuaternion(dst);
+            flag_frame_valid = true;
+            break;
+        case CRSF_FRAME_IMU_INDEX:
+            crsfFrameIMU(dst);
+            flag_frame_valid = true;
+            break;
+        default:
+            return;
+    } // switch(currentSchedule) {
 
-    if (currentSchedule & BIT(CRSF_FRAME_QUATERNION_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameQuaternion(dst);
-        crsfFinalize(dst);
-    }
-
-    if (currentSchedule & BIT(CRSF_FRAME_IMU_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameIMU(dst);
+    if (flag_frame_valid == true) {
         crsfFinalize(dst);
     }
 
@@ -905,6 +894,9 @@ void crsfHandleDeviceInfoResponse(uint8_t *payload)
 }
 #endif
 
+// rewrote the scheduler, since the BIT thing causes an overflow on the uint8 and setting them
+// makes only sense if you have more than one on a single index. But the index is incremented with every
+// set, so we might as well just store the index and do a switch when calling.
 void initCrsfTelemetry(void)
 {
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
@@ -924,52 +916,52 @@ void initCrsfTelemetry(void)
 #ifdef USE_GPS
     if (featureIsEnabled(FEATURE_GPS)
        && telemetryIsSensorEnabled(SENSOR_ALTITUDE | SENSOR_LAT_LONG | SENSOR_GROUND_SPEED | SENSOR_HEADING)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_GPS_INDEX);
+        crsfSchedule[index++] = CRSF_FRAME_GPS_INDEX;
     }
 #endif
 
     if ((isBatteryVoltageConfigured() && telemetryIsSensorEnabled(SENSOR_VOLTAGE))
         || (isAmperageConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT | SENSOR_FUEL))) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX);
+        crsfSchedule[index++] = CRSF_FRAME_BATTERY_SENSOR_INDEX;
     }
 
     if (sensors(SENSOR_ACC) && telemetryIsSensorEnabled(SENSOR_PITCH | SENSOR_ROLL | SENSOR_HEADING)) {
-//        crsfSchedule[index++] = BIT(CRSF_FRAME_ACCELERATOR_INDEX);
-        crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
-//        crsfSchedule[index++] = BIT(CRSF_FRAME_QUATERNION_INDEX);
+//        crsfSchedule[index++] = CRSF_FRAME_ACCELERATOR_INDEX;
+        crsfSchedule[index++] = CRSF_FRAME_ATTITUDE_INDEX;
+//        crsfSchedule[index++] = CRSF_FRAME_QUATERNION_INDEX;
     }
 
     if (telemetryIsSensorEnabled(SENSOR_MODE)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_FLIGHT_MODE_INDEX);
+        crsfSchedule[index++] = CRSF_FRAME_FLIGHT_MODE_INDEX;
     }
 
 #if defined(USE_CRSF_V3)
     while (index < (CRSF_CYCLETIME_US / CRSF_TELEMETRY_FRAME_INTERVAL_MAX_US) && index < CRSF_SCHEDULE_COUNT_MAX) {
         // schedule heartbeat to ensure that telemetry/heartbeat frames are sent at minimum 50Hz
-        crsfSchedule[index++] = BIT(CRSF_FRAME_HEARTBEAT_INDEX);
+        crsfSchedule[index++] = CRSF_FRAME_HEARTBEAT_INDEX;
     }
 #endif
 
 //#ifdef USE_ACC
-//    crsfSchedule[index++] = BIT(CRSF_FRAME_ACCELERATOR_INDEX);
+//    crsfSchedule[index++] = CRSF_FRAME_ACCELERATOR_INDEX;
 //#endif
 
 #ifdef USE_BARO
-    crsfSchedule[index++] = BIT(CRSF_FRAME_BARO_INDEX);
+    crsfSchedule[index++] = CRSF_FRAME_BARO_INDEX;
 #endif
 
 #ifdef USE_MAG            
-    crsfSchedule[index++] = BIT(CRSF_FRAME_MAGNET_INDEX);
+    crsfSchedule[index++] = CRSF_FRAME_MAGNET_INDEX;
 #endif
 
-crsfSchedule[index++] = BIT(CRSF_FRAME_IMU_INDEX);
+// crsfSchedule[index++] = CRSF_FRAME_IMU_INDEX;
 
 crsfScheduleCount = (uint8_t)index;
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
     crsfDisplayportRegister();
 #endif
-}
+} // void initCrsfTelemetry(void)
 
 bool checkCrsfTelemetryState(void)
 {
